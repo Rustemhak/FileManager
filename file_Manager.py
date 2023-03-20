@@ -12,41 +12,62 @@ class FileManager:
         self.types_files = []
 
     def move_between_directories(self):  # Перемещение по разрешенным директориям
-        chosen_directory = int(input('Введите ID директории чтобы переместиться: '))
-        location = self.id_choice(chosen_directory)
-        if location:
-            self.root_directory += f'/{location}'
-            self.refresh_directory()
+        try:
+            chosen_directory = int(input('Введите ID директории чтобы переместиться: '))
+            try:
+                if 0 < chosen_directory <= len(self.types_files):
+                    if self.types_files[chosen_directory - 1] == 'Directory':
+                        location = self.id_choice(chosen_directory)
+                        if location:
+                            self.root_directory += f'/{location}'
+                            self.refresh_directory()
+                    else:
+                        print('Выбрана не директория, попробуйте ввести другой ID')
+                else:
+                    print(
+                        'Выбран несуществующий ID. Посмотрите ещё раз список файлов, чтобы убедиться, что выбран '
+                        'существующий ID')
+            except OSError as e:
+                print(f'Error: {e.filename} - {e.strerror}')
+        except ValueError as e:
+            print('Некорректный ID')
+
 
     def move_up(self):  # Подняться вверх по директории
         location = self.root_directory.split('/')
         location.pop()
         up = '/'.join(location)
         if len(location) == 0:
-            print('Нельзя подняться ещё выше')
+            print('Нет родительской папки')
         else:
             self.root_directory = up
             self.refresh_directory()
 
     def copy_files(self):
-        start_id = int(input('ID директории/ID файла из который производится копирование: '))
-        print(self.allowed_files[start_id])
-
-        start_directory = f"{self.root_directory}/{self.id_choice(start_id)}"
-        end_id = int(input('ID директории чтобы скопировать в неё: '))
-        end_directory = f"{self.root_directory}/{self.id_choice(end_id)}"
         try:
-            if self.types_files[start_id] == 'Directory':
-                copy_tree(start_directory, end_directory)
-            elif self.types_files[start_id] == 'File':
-                shutil.copy(start_directory, end_directory)
-
-        except OSError as e:
-            print(f'Error: {e.filename} - {e.strerror}')
-        except IndexError as e:
-            print(f'Сначала нужно посмотреть на список файлов')
-        else:
-            print('Успешное копирование')
+            start_ids = list(
+                map(int, input('Введите через пробел ID файлов из который производится копирование: ').split()))
+            end_id = int(input('ID директории чтобы скопировать в неё: '))
+            for start_id in start_ids:
+                # print(self.allowed_files[start_id])
+                start_directory = f"{self.root_directory}/{self.id_choice(start_id)}"
+                end_directory = f"{self.root_directory}/{self.id_choice(end_id)}"
+                if self.types_files[end_id - 1] != 'Directory':
+                    print('Выбрана не директория для копирования туда. Попробуйте выбрать другой ID')
+                else:
+                    try:
+                        if self.types_files[start_id - 1] == 'Directory':
+                            print(f'Выбран ID директории. Попробуйте сначала нужно посмотреть на список файлов')
+                        elif self.types_files[start_id - 1] == 'File':
+                            shutil.copy(start_directory, end_directory)
+                    except OSError as e:
+                        print(f'Error: {e.filename} - {e.strerror}')
+                    except IndexError as e:
+                        print(f'Выбран несуществующий ID. Попробуйте сначала нужно посмотреть на список файлов')
+                    else:
+                        print('Успешное копирование')
+        except ValueError as e:
+            print('Некорректный ввод')
 
     def refresh_directory(self):
         self.allowed_files = self.list_directory()[1]
@@ -86,32 +107,17 @@ class FileManager:
         print(help_page)
         while True:
             choose = str(input(
-                '\nhelp - список команд, exit - выйти из файлового менеджера\nВведите ID команды чтобы продолжить: '))
+                '\nhelp - список команд, exit - выйти из файлового менеджера\nВведите ID команды либо help/exit '
+                'чтобы продолжить: '))
             print('\n')
             if choose == '1':
                 print(self.list_directory()[0])
-            # if choose == '2':
-            #     self.create_directory()
-            # if choose == '3':
-            #     self.delete_directory()
             elif choose == '2':
                 self.move_between_directories()
-            # if choose == '5':
-            #     self.create_file()
-            # if choose == '6':
-            #     self.overwrite_file()
-            # if choose == '7':
-            #     self.read_file()
-            # if choose == '8':
-            #     self.delete_file()
             elif choose == '3':
                 self.move_up()
             elif choose == '4':
                 self.copy_files()
-            # if choose == '10':
-            #     self.move_files()
-            # if choose == '11':
-            #     self.rename_file()
             elif choose.lower() == 'help':
                 print(f'\n{help_page}')
             elif choose.lower() == 'exit':
